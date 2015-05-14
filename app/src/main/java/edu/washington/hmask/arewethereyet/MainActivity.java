@@ -92,7 +92,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             isValid = false;
         }
 
-        if (!intervalField.getText().toString().matches("\\d+")) {
+        if (!intervalField.getText().toString().matches("\\d+") || intervalField.getText().toString().equals("0")) {
             isValid = false;
         }
 
