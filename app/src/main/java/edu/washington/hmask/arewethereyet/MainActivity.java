@@ -2,23 +2,32 @@ package edu.washington.hmask.arewethereyet;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.telephony.PhoneNumberFormattingTextWatcher;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-import java.util.GregorianCalendar;
+import java.util.Calendar;
 
 
-public class MainActivity extends ActionBarActivity implements View.OnClickListener {
+public class MainActivity extends ActionBarActivity implements View.OnClickListener, TextWatcher {
 
-    private AlarmManager alarmManager;
+    AlarmManager alarmManager;
     Button startButton;
+    EditText messageField;
+    EditText phoneField;
+    EditText intervalField;
+    private static final String BROADCAST_ID = "edu.washington.hmask.AWTY_ALARM";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,19 +36,78 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         startButton = (Button) findViewById(R.id.startButton);
         startButton.setOnClickListener(this);
+
+        phoneField = (EditText) findViewById(R.id.phoneField);
+        phoneField.addTextChangedListener(new PhoneNumberFormattingTextWatcher());
+        phoneField.addTextChangedListener(this);
+
+        messageField = (EditText) findViewById(R.id.messageField);
+        messageField.addTextChangedListener(this);
+
+        intervalField = (EditText) findViewById(R.id.intervalField);
+        intervalField.addTextChangedListener(this);
+
+        if (isAlarmRunning()) {
+            startButton.setText("Stop");
+            messageField.setEnabled(false);
+            phoneField.setEnabled(false);
+            intervalField.setEnabled(false);
+        }
+
+        validateFields();
     }
 
     @Override
     public void onClick(View v) {
-        boolean alarmRunning = (PendingIntent.getBroadcast(this, 0,
-                new Intent("edu.washington.hmask.AWTY_ALARM"),
-                PendingIntent.FLAG_NO_CREATE) != null);
-        if (alarmRunning) {
+        if (isAlarmRunning()) {
             stopMessages();
         } else {
             startMessages();
         }
+    }
 
+    @Override
+    public void afterTextChanged(Editable s) {
+        validateFields();
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+    }
+
+    private void validateFields() {
+        boolean isValid = true;
+
+        if (!phoneField.getText().toString().matches("\\(\\d{3}\\)\\s\\d{3}-\\d{4}")) {
+            isValid = false;
+        }
+
+        if (messageField.getText().toString() == null || messageField.getText().toString().isEmpty()) {
+            isValid = false;
+        }
+
+        if (!intervalField.getText().toString().matches("\\d+")) {
+            isValid = false;
+        }
+
+
+        if (isValid && !isAlarmRunning() || isAlarmRunning()) {
+            startButton.setEnabled(true);
+        } else if (!isValid && !isAlarmRunning()) {
+            startButton.setEnabled(false);
+        }
+    }
+
+    private boolean isAlarmRunning() {
+        return (PendingIntent.getBroadcast(this, 0,
+                new Intent(getApplicationContext(), AlarmReceiver.class),
+                PendingIntent.FLAG_NO_CREATE) != null);
     }
 
     @Override
@@ -64,25 +132,35 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
     private void startMessages() {
-        Intent intentAlarm = new Intent(this, AlarmReceiver.class);
-        EditText messageField = (EditText) findViewById(R.id.messageField);
+        Intent intentAlarm = new Intent(getApplicationContext(), AlarmReceiver.class);
         String message = messageField.getText().toString();
         intentAlarm.putExtra("message", message);
-        EditText phoneField = (EditText) findViewById(R.id.phoneField);
         String phoneNumber = phoneField.getText().toString();
         intentAlarm.putExtra("phone", phoneNumber);
-        PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0, intentAlarm, 0);
-        EditText intervalField = (EditText) findViewById(R.id.intervalField);
-        long interval = Long.getLong(intervalField.getText().toString()) * 60 * 1000;
-        alarmManager.setRepeating(AlarmManager.RTC, interval, interval, alarmIntent);
+        PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0, intentAlarm, PendingIntent.FLAG_CANCEL_CURRENT);
+        long interval = Long.parseLong(intervalField.getText().toString()) * 60 * 1000;
+        alarmManager.setRepeating(AlarmManager.RTC, Calendar.getInstance().getTimeInMillis() + interval, interval, alarmIntent);
         startButton.setText("Stop");
+        messageField.setEnabled(false);
+        phoneField.setEnabled(false);
+        intervalField.setEnabled(false);
     }
 
     private void stopMessages() {
-        alarmManager.cancel(PendingIntent.getBroadcast(this, 0,
-                new Intent("edu.washington.hmask.AWTY_ALARM"),
-                PendingIntent.FLAG_NO_CREATE));
+        PendingIntent pi = PendingIntent.getBroadcast(this, 0,
+                new Intent(getApplicationContext(), AlarmReceiver.class),
+                PendingIntent.FLAG_CANCEL_CURRENT);
+        alarmManager.cancel(pi);
+        pi.cancel();
         startButton.setText("Start");
+        messageField.setEnabled(true);
+        phoneField.setEnabled(true);
+        intervalField.setEnabled(true);
     }
 }
