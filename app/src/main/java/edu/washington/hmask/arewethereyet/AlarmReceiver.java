@@ -10,8 +10,11 @@ import android.content.Intent;
 public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
+        // Create a new Intent with the same extras payload, but pointing at the AlarmService
         Intent i = new Intent(context, AlarmService.class);
         i.putExtras(intent);
+
+        // Fire the intent
         context.startService(i);
     }
 }

@@ -21,6 +21,7 @@ public class AlarmService extends IntentService {
 
         Handler h = new Handler(getApplicationContext().getMainLooper());
 
+        // Display the toast using logic run in the main thread
         h.post(new Runnable() {
             @Override
             public void run() {

@@ -82,21 +82,26 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     }
 
     private void validateFields() {
+        // Assume valid unless a field is invalid
         boolean isValid = true;
 
+        // If the phone field's text is not a phone number (doesn't match pattern), it is invalid
         if (!phoneField.getText().toString().matches("\\(\\d{3}\\)\\s\\d{3}-\\d{4}")) {
             isValid = false;
         }
 
+        // If the message field's text is null or empty, it is invalid
         if (messageField.getText().toString() == null || messageField.getText().toString().isEmpty()) {
             isValid = false;
         }
 
+        // If the interval field's text contains non-numeric characters or is set to zero, it is invalid.
         if (!intervalField.getText().toString().matches("\\d+") || intervalField.getText().toString().equals("0")) {
             isValid = false;
         }
 
-
+        // If the fields are valid and the alarm is not running, or if the alarm is running, enable the start button
+        // Otherwise, if the fields are invalid and the alarm is not running, disable the start button
         if (isValid && !isAlarmRunning() || isAlarmRunning()) {
             startButton.setEnabled(true);
         } else if (!isValid && !isAlarmRunning()) {
@@ -138,14 +143,23 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     }
 
     private void startMessages() {
+        // Create an Intent to be received by the AlarmReceiver
         Intent intentAlarm = new Intent(getApplicationContext(), AlarmReceiver.class);
+
+        // Add the message and phone number to the Intent's payload
         String message = messageField.getText().toString();
         intentAlarm.putExtra("message", message);
         String phoneNumber = phoneField.getText().toString();
         intentAlarm.putExtra("phone", phoneNumber);
+
+        // Create a PendingIntent using the Intent
         PendingIntent alarmIntent = PendingIntent.getBroadcast(this, 0, intentAlarm, PendingIntent.FLAG_CANCEL_CURRENT);
+
+        // Set the alarm to fire at the given interval
         long interval = Long.parseLong(intervalField.getText().toString()) * 60 * 1000;
         alarmManager.setRepeating(AlarmManager.RTC, Calendar.getInstance().getTimeInMillis() + interval, interval, alarmIntent);
+
+        // Update the UI
         startButton.setText("Stop");
         messageField.setEnabled(false);
         phoneField.setEnabled(false);
@@ -153,11 +167,14 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     }
 
     private void stopMessages() {
+        // Cancel the PendingIntent if it exists
         PendingIntent pi = PendingIntent.getBroadcast(this, 0,
                 new Intent(getApplicationContext(), AlarmReceiver.class),
                 PendingIntent.FLAG_CANCEL_CURRENT);
         alarmManager.cancel(pi);
         pi.cancel();
+
+        // Update the UI
         startButton.setText("Start");
         messageField.setEnabled(true);
         phoneField.setEnabled(true);
