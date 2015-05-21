@@ -3,6 +3,7 @@ package edu.washington.hmask.arewethereyet;
 import android.app.IntentService;
 import android.content.Intent;
 import android.os.Handler;
+import android.telephony.SmsManager;
 import android.widget.Toast;
 
 /**
@@ -21,11 +22,12 @@ public class AlarmService extends IntentService {
 
         Handler h = new Handler(getApplicationContext().getMainLooper());
 
-        // Display the toast using logic run in the main thread
+        // Send the message using logic run in the main thread
         h.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getApplicationContext(), phone + ": " + message, Toast.LENGTH_LONG).show();
+                SmsManager smsManager = SmsManager.getDefault();
+                smsManager.sendTextMessage(phone.replaceAll("[^\\+0-9]", ""), null, message, null, null);
             }
         });
 
